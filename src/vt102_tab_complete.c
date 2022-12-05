@@ -1,4 +1,5 @@
 #include "uart_console/console.h"
+#include "vt102_util.h"
 #include <inttypes.h>
 // Functions that handle tab completion
 
