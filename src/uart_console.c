@@ -1,9 +1,25 @@
-#include "console.h"
+#include "uart_console/console.h"
 #include <stdio.h>
 #include <string.h>
 #include "pico/stdlib.h"
 
-void console_init(
+#define VT102_NORMAL  0x00
+#define VT102_ESCAPE  0x01
+#define VT102_ESCAPE2 0x02
+
+static void reset_line(struct ConsoleConfig* cc) {
+  cc->line_length = 0;
+  cc->cursor_index = 0;
+  cc->num_args = 0;
+  cc->prompt_displayed = 0;
+  cc->tab_length = 0;
+  cc->tab_callback_index = cc->callback_count - 1;
+#if CONSOLE_HISTORY_LINES > 0
+  cc->history_marker_index = -1;
+#endif
+}
+
+void uart_console_init(
   struct ConsoleConfig* cc,
   struct ConsoleCallback* callbacks,
   uint8_t callback_count,
@@ -13,6 +29,7 @@ void console_init(
   cc->callbacks = callbacks;
   cc->callback_count = callback_count;
   cc->mode = mode;
+  reset_line(cc);
 }
 
 static int convert_spaces_to_nulls(char* line, uint16_t line_length) {
@@ -104,10 +121,6 @@ static uint16_t remove_backslashes(char* line, uint16_t line_length) {
 //   001 01
 //
 // everything is is ignored
-#define VT102_NORMAL  0x00
-#define VT102_ESCAPE  0x01
-#define VT102_ESCAPE2 0x02
-
 static void echo(char c) {
   if (c == '\r') {
     putchar('\r');
@@ -149,6 +162,7 @@ static void vt102_backspace(struct ConsoleConfig* cc) {
 
   --cc->cursor_index;
   --cc->line_length;
+  cc->tab_length = cc->line_length;
   vt102_putchar(cc, 0x08); // backspace
   vt102_putchar(cc, 0x1b); // escape
   vt102_putchar(cc, '['); // escape
@@ -195,6 +209,64 @@ static void vt102_end_of_line(struct ConsoleConfig* cc) {
   cc->cursor_index = cc->line_length;
 }
 
+static void vt102_erase_current_line(struct ConsoleConfig* cc) {
+  if (cc->line_length == 0) {
+    // already empty
+    return;
+  }
+  vt102_beginning_of_line(cc);
+  vt102_putchar(cc, 0x1b); // escape
+  vt102_putchar(cc, '['); // escape
+  vt102_put_ascii_number(cc, cc->line_length);
+  vt102_putchar(cc, 'P');  // delete character
+
+  cc->line_length = 0;
+  cc->line[0] = 0;
+}
+
+static void vt102_replace_current_line(struct ConsoleConfig* cc, const char* line) {
+  vt102_erase_current_line(cc);
+  const uint16_t new_length = strlen(line);
+  memcpy(cc->line, line, new_length);
+  cc->line_length = new_length;
+  cc->cursor_index = new_length;
+  cc->tab_length = cc->line_length;
+  for (uint16_t i=0; i<new_length; ++i) {
+    vt102_putchar(cc, line[i]);
+  }
+}
+
+
+static uint8_t vt102_try_tab_complete(struct ConsoleConfig* cc, uint8_t callback_idx) {
+  // synthetically adding "help" at the end of the command list
+  const char* command = callback_idx >= cc->callback_count ?
+    "help" : cc->callbacks[callback_idx].command; 
+  uint8_t i=0;
+  for (; i < cc->tab_length; ++i) {
+    if (cc->line[i] != command[i]) {
+      return 0;
+    }
+  }
+  // it's a match
+  if (command[i]) {
+    uint16_t tab_length = cc->tab_length;
+    vt102_replace_current_line(cc, command);
+    cc->tab_length = tab_length;
+  }
+  cc->tab_callback_index = callback_idx;
+  return 1;
+}
+
+
+static void vt102_tab_pressed(struct ConsoleConfig* cc) {
+  for (uint8_t i=0; i < cc->callback_count; ++i) {
+    const uint8_t callback_idx = (cc->tab_callback_index + i + 1) % (cc->callback_count + 1);
+    if (vt102_try_tab_complete(cc, callback_idx)) {
+      return;
+    }
+  } 
+}
+
 
 static char parse_vt102_normal(struct ConsoleConfig* cc, char c) {
   if (c >= 32) {
@@ -208,6 +280,9 @@ static char parse_vt102_normal(struct ConsoleConfig* cc, char c) {
       vt102_putchar(cc, c);
       vt102_putchar(cc, '\n');
       return c;
+    case '\t':
+      vt102_tab_pressed(cc);
+      break;
     case 0x1b:
       cc->terminal_state = VT102_ESCAPE;
       break;
@@ -248,48 +323,24 @@ static uint8_t maybe_push_line_to_history(struct ConsoleConfig* cc) {
     return 0;
   }
 
-  cc->history_tail_index = (cc->history_tail_index + 1) & CONSOLE_HISTORY_LINES;
+  cc->history_tail_index = (cc->history_tail_index + 1) % CONSOLE_HISTORY_LINES;
   char* new_entry = cc->history + (cc->history_tail_index * (CONSOLE_MAX_LINE_CHARS + 1));
   memcpy(new_entry, cc->line, cc->line_length);
   new_entry[cc->line_length] = '\0';
   return 1;
 }
 
-static void vt102_erase_current_line(struct ConsoleConfig* cc) {
-  if (cc->line_length == 0) {
-    // already empty
-    return;
-  }
-  vt102_beginning_of_line(cc);
-  vt102_putchar(cc, 0x08); // backspace
-  vt102_putchar(cc, 0x1b); // escape
-  vt102_putchar(cc, '['); // escape
-  vt102_put_ascii_number(cc, cc->line_length);
-  vt102_putchar(cc, 'P');  // delete character
-
-  cc->line_length = 0;
-  cc->line[0] = 0;
-}
-
-static void vt102_replace_current_line(struct ConsoleConfig* cc, const char* line) {
-  vt102_erase_current_line(cc);
-  const uint16_t new_length = strlen(line);
-  memcpy(cc->line, line, new_length);
-  cc->line_length = new_length;
-  for (uint16_t i=0; i<new_length; ++i) {
-    vt102_putchar(cc, line[i]);
-  }
-}
-
 static void vt102_history_previous(struct ConsoleConfig* cc) {
-  if (cc->history_marker_index >= CONSOLE_HISTORY_LINES) {
+  if (cc->history_marker_index >= (CONSOLE_HISTORY_LINES - 1)) {
     // history is exausted
     return;
   }
+  ++cc->history_marker_index;
   const uint16_t slot = (cc->history_tail_index + CONSOLE_HISTORY_LINES - cc->history_marker_index) % CONSOLE_HISTORY_LINES;
   const char* entry = cc->history + (slot * (CONSOLE_MAX_LINE_CHARS + 1));
   if (!entry[0]) {
     // this slot has no data
+    --cc->history_marker_index;
     return;
   }
 
@@ -299,16 +350,19 @@ static void vt102_history_previous(struct ConsoleConfig* cc) {
     }
   }
   vt102_replace_current_line(cc, entry);
-  ++cc->history_marker_index;
 }
 
 static void vt102_history_next(struct ConsoleConfig* cc) {
-  if (cc->history_marker_index == 0) {
+  if (cc->history_marker_index == -1) {
     // already at the front
     return;
   }
 
   --cc->history_marker_index;
+  if (cc->history_marker_index == -1) {
+    vt102_erase_current_line(cc);
+    return;
+  }
   const uint16_t slot = (cc->history_tail_index + CONSOLE_HISTORY_LINES - cc->history_marker_index) % CONSOLE_HISTORY_LINES;
   const char* entry = cc->history + (slot * (CONSOLE_MAX_LINE_CHARS + 1));
   vt102_replace_current_line(cc, entry);
@@ -322,11 +376,11 @@ static char parse_vt102_escape2(struct ConsoleConfig* cc, char c) {
     case 'A':
       // up arrow
       vt102_history_previous(cc);
-      break;
+      return 0;
     case 'B':
       // down arrow
       vt102_history_next(cc);
-      break;
+      return 0;
 #endif
     case 'D':
       // left arrow
@@ -403,21 +457,25 @@ static int split_args(struct ConsoleConfig* cc) {
   return 1;  // ok
 }
 
-static void reset_line(struct ConsoleConfig* cc) {
-  cc->line_length = 0;
-  cc->cursor_index = 0;
-  cc->num_args = 0;
-  cc->prompt_displayed = 0;
-#if CONSOLE_HISTORY_LINES > 0
-  cc->history_marker_index = 0;
-#endif
-}
-
 static void dump_help(const struct ConsoleConfig* cc) {
   for (uint8_t i=0; i < cc->callback_count; ++i) {
     const struct ConsoleCallback* cb = cc->callbacks + i;
     printf("%s: %s\n", cb->command, cb->description);
   }
+}
+
+static uint8_t check_arg_count(const struct ConsoleCallback* cb, uint8_t argc) {
+  if ((cb->num_args >= 0) && (cb->num_args != argc)) {
+    if (argc == 0) {
+      printf("%s: Unexpected argument(s)", cb->command);
+    } else if (argc == 1) {
+      printf("%s: Expected 1 argument", cb->command);
+    } else {
+      printf("%s: Expected %d arguments", cb->command, argc);
+    }
+    return 0;
+  }
+  return 1;
 }
 
 static void parse_line(struct ConsoleConfig* cc) {
@@ -437,7 +495,9 @@ static void parse_line(struct ConsoleConfig* cc) {
   for (uint8_t i=0; i < cc->callback_count; ++i) {
     struct ConsoleCallback* cb = cc->callbacks + i;
     if (!strcmp(command, cb->command)) {
-      cb->callback(cc->num_args - 1, cc->arg + 1);
+      if (check_arg_count(cb, cc->num_args - 1)) {
+        cb->callback(cc->num_args - 1, cc->arg + 1);
+      }
       return;
     }
   }
@@ -479,10 +539,10 @@ static void dump_internal_state(struct ConsoleConfig* cc) {
   printf("^\n");
 }
 
-void console_poll(
+void uart_console_poll(
     struct ConsoleConfig* cc,
     const char* prompt) {
-  if ((cc->prompt_displayed) && (cc->mode != CONSOLE_MINIMAL)) {
+  if ((cc->prompt_displayed == 0) && (cc->mode != CONSOLE_MINIMAL)) {
     printf(prompt);
     if (cc->mode == CONSOLE_VT102) {
       // put the terminal in insert mode
@@ -547,6 +607,7 @@ void console_poll(
     // update indexes
     ++cc->line_length;
     ++cc->cursor_index;
+    cc->tab_length = cc->line_length;
   }
 
   if (cc->mode == CONSOLE_DEBUG_VT102) {

@@ -1,11 +1,18 @@
-#ifndef CONSOLE_H
-#define CONSOLE_H
+#ifndef PICO_UART_CONSOLE_H
+#define PICO_UART_CONSOLE_H
 
 #include <inttypes.h>
 
-#define CONSOLE_MAX_LINE_CHARS 80
-#define CONSOLE_MAX_ARGS 16
-#define CONSOLE_HISTORY_LINES 10  // set to zero to disable
+// Any of these can be overriden with compile time flags
+#ifndef CONSOLE_MAX_LINE_CHARS
+  #define CONSOLE_MAX_LINE_CHARS 80
+#endif
+#ifndef CONSOLE_MAX_ARGS
+  #define CONSOLE_MAX_ARGS 16
+#endif
+#ifndef CONSOLE_HISTORY_LINES
+  #define CONSOLE_HISTORY_LINES 10  // set to zero to disable
+#endif
 
 // Console Mode
 // Consumes characters 32-126.  No echo or editing.
@@ -23,6 +30,7 @@
 struct ConsoleCallback {
   const char* command;
   const char* description;
+  int16_t num_args;  // Set to -1 to allow any number
   void (*callback)(uint8_t argc, char* argv[]);
 };
 
@@ -43,18 +51,24 @@ struct ConsoleConfig {
   uint8_t terminal_state;  // vt102 state tracking
   uint16_t cursor_index;  // used with vt102
 
+  // tab complete (vt102 mode only)
+  // the length into line that tab complete is active for
+  uint16_t tab_length;
+  // index of the last command that tab complete displayed
+  uint8_t tab_callback_index;
+
 #if CONSOLE_HISTORY_LINES > 0
   // state needed for history support
   char history[(CONSOLE_MAX_LINE_CHARS + 1) * CONSOLE_HISTORY_LINES];
   // contains the tail index (index of last entry written)
   uint16_t history_tail_index;
   // constains the number of entries to look backwards in the queue (usually zero)
-  uint16_t history_marker_index;
+  int16_t history_marker_index;
 #endif
 };
 
 // Initializes console
-void console_init(
+void uart_console_init(
   struct ConsoleConfig* cc,
   struct ConsoleCallback* callbacks,
   uint8_t callback_count,
@@ -62,6 +76,6 @@ void console_init(
 
 // Polls for some characters.  This function may call any of the callbacks
 // defined in ConsoleConfig before returning.
-void console_poll(struct ConsoleConfig* cc, const char* prompt);
+void uart_console_poll(struct ConsoleConfig* cc, const char* prompt);
 
 #endif
