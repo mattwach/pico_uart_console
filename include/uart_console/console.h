@@ -43,7 +43,6 @@ struct ConsoleConfig {
   char line[CONSOLE_MAX_LINE_CHARS + 1];
   uint16_t line_length;
   char* arg[CONSOLE_MAX_ARGS];
-  uint8_t num_args;
   uint8_t mode;
   uint8_t prompt_displayed;
 

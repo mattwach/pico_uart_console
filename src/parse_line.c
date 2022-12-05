@@ -1,7 +1,7 @@
 
 // Contains logic for parsing a completed string into arguments
 // as well as invoking the callback function
-#include "uart_console/console.h"
+#include "parse_line.h"
 #include "command_history.h"
 #include <stdio.h>
 #include <string.h>
@@ -102,10 +102,14 @@ static uint16_t remove_backslashes(char* line, uint16_t line_length) {
   return tail;
 }
 
-// Sets up cc->args and cc->num_args by replacing whitespace
+// Sets up cc->args by replacing whitespace
 // with nulls and setting appropriate args[] pointers
 // to point within cc->line.
+//
+// Returns the number of arguments found, including the
+// command itself (this zero represents an error condition).
 static int split_args(struct ConsoleConfig* cc) {
+  int num_args = 0;
   if (!convert_spaces_to_nulls(cc->line, cc->line_length)) {
     return 0;
   }
@@ -116,25 +120,25 @@ static int split_args(struct ConsoleConfig* cc) {
 
   if (cc->line[0] != 0) {
     cc->arg[0] = cc->line;
-    ++cc->num_args;
+    ++num_args;
   }
 
   for (uint16_t i=1; i<cc->line_length; ++i) {
     if ((cc->line[i] != 0) && (cc->line[i-1] == 0)) {
-      if (cc->num_args >= CONSOLE_MAX_ARGS) {
+      if (num_args >= CONSOLE_MAX_ARGS) {
         printf("Too many arguments (>%d)\n", CONSOLE_MAX_ARGS);
         return 0;
       }
-      cc->arg[cc->num_args] = cc->line + i;
-      if (cc->arg[cc->num_args][0] == 0xFF) {
+      cc->arg[num_args] = cc->line + i;
+      if (cc->arg[num_args][0] == 0xFF) {
         // special case empty quoted string
-        cc->arg[cc->num_args][0] = '\0';
+        cc->arg[num_args][0] = '\0';
       }
-      ++cc->num_args;
+      ++num_args;
     }
   }
   
-  return 1;  // ok
+  return num_args;  // ok
 }
 
 void uart_console_parse_line(struct ConsoleConfig* cc) {
@@ -142,10 +146,8 @@ void uart_console_parse_line(struct ConsoleConfig* cc) {
 #if CONSOLE_HISTORY_LINES > 0
   maybe_push_line_to_history(cc);
 #endif
-  if (!split_args(cc)) {
-    return;
-  }
-  if (cc->num_args == 0) {
+  const int num_args = split_args(cc);
+  if (num_args == 0) {
     return;
   }
   // At this point, there should be a null termination after
@@ -154,8 +156,8 @@ void uart_console_parse_line(struct ConsoleConfig* cc) {
   for (uint8_t i=0; i < cc->callback_count; ++i) {
     struct ConsoleCallback* cb = cc->callbacks + i;
     if (!strcmp(command, cb->command)) {
-      if (check_arg_count(cb, cc->num_args - 1)) {
-        cb->callback(cc->num_args - 1, cc->arg + 1);
+      if (check_arg_count(cb, num_args - 1)) {
+        cb->callback(num_args - 1, cc->arg + 1);
       }
       return;
     }

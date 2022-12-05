@@ -8,8 +8,9 @@ target_include_directories(UART_CONSOLE  INTERFACE ${CMAKE_CURRENT_LIST_DIR}/../
 target_sources(UART_CONSOLE  INTERFACE
     ${CMAKE_CURRENT_LIST_DIR}/command_history.c
     ${CMAKE_CURRENT_LIST_DIR}/parse_line.c
-    ${CMAKE_CURRENT_LIST_DIR}/vt102_tab_complete.c
-    ${CMAKE_CURRENT_LIST_DIR}/vt102_util.c
     ${CMAKE_CURRENT_LIST_DIR}/uart_console.c
     ${CMAKE_CURRENT_LIST_DIR}/util.c
+    ${CMAKE_CURRENT_LIST_DIR}/vt102_process_char.c
+    ${CMAKE_CURRENT_LIST_DIR}/vt102_tab_complete.c
+    ${CMAKE_CURRENT_LIST_DIR}/vt102_util.c
 )
