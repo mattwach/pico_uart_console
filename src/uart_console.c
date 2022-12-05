@@ -3,6 +3,12 @@
 #include <string.h>
 #include "pico/stdlib.h"
 
+#include "util.h"
+#include "vt102_util.h"
+
+// from vt102_tab_complete.c
+void vt102_tab_pressed(struct ConsoleConfig* cc);
+
 #define VT102_NORMAL  0x00
 #define VT102_ESCAPE  0x01
 #define VT102_ESCAPE2 0x02
@@ -121,31 +127,6 @@ static uint16_t remove_backslashes(char* line, uint16_t line_length) {
 //   001 01
 //
 // everything is is ignored
-static void echo(char c) {
-  if (c == '\r') {
-    putchar('\r');
-    putchar('\n');  // also one of these
-  } else if (c >= 32) {
-    putchar(c);
-  }
-}
-
-static void debug_echo(char c) {
-  printf("%03d %02x ", c, c);
-  if ((c >= 32) && (c <= 126)) {
-    putchar(c);
-  }
-  printf("\n");
-}
-
-static inline void vt102_putchar(struct ConsoleConfig* cc, char c) {
-  if (cc->mode == CONSOLE_DEBUG_VT102) {
-    debug_echo(c);
-  } else {
-    putchar(c);
-  }
-}
-
 static void vt102_backspace(struct ConsoleConfig* cc) {
   if (cc->cursor_index == 0) {
     // can't backspace
@@ -169,104 +150,6 @@ static void vt102_backspace(struct ConsoleConfig* cc) {
   vt102_putchar(cc, '1');  // num chars
   vt102_putchar(cc, 'P');  // delete character
 }
-
-static void vt102_put_ascii_number(struct ConsoleConfig* cc, uint16_t delta) {
-  if (delta == 0) {
-    // nothing
-    return;
-  }
-  char digits[8];
-  uint8_t length = 0;
-  for (; delta; ++length, delta /= 10) {
-    digits[length] = '0' + (delta % 10);
-  }
-  for (; length > 0; --length) {
-    vt102_putchar(cc, digits[length - 1]);
-  }
-}
-
-static void vt102_beginning_of_line(struct ConsoleConfig* cc) {
-  if (cc->cursor_index == 0) {
-    // already at beginning
-    return;
-  }
-  vt102_putchar(cc, 0x1b); // escape
-  vt102_putchar(cc, '['); // escape
-  vt102_put_ascii_number(cc, cc->cursor_index);
-  vt102_putchar(cc, 'D');  // cursor left
-  cc->cursor_index = 0;
-}
-
-static void vt102_end_of_line(struct ConsoleConfig* cc) {
-  if (cc->cursor_index >= cc->line_length) {
-    // already at eol
-    return;
-  }
-  vt102_putchar(cc, 0x1b); // escape
-  vt102_putchar(cc, '['); // escape
-  vt102_put_ascii_number(cc, cc->line_length - cc->cursor_index);
-  vt102_putchar(cc, 'C');  // cursor right
-  cc->cursor_index = cc->line_length;
-}
-
-static void vt102_erase_current_line(struct ConsoleConfig* cc) {
-  if (cc->line_length == 0) {
-    // already empty
-    return;
-  }
-  vt102_beginning_of_line(cc);
-  vt102_putchar(cc, 0x1b); // escape
-  vt102_putchar(cc, '['); // escape
-  vt102_put_ascii_number(cc, cc->line_length);
-  vt102_putchar(cc, 'P');  // delete character
-
-  cc->line_length = 0;
-  cc->line[0] = 0;
-}
-
-static void vt102_replace_current_line(struct ConsoleConfig* cc, const char* line) {
-  vt102_erase_current_line(cc);
-  const uint16_t new_length = strlen(line);
-  memcpy(cc->line, line, new_length);
-  cc->line_length = new_length;
-  cc->cursor_index = new_length;
-  cc->tab_length = cc->line_length;
-  for (uint16_t i=0; i<new_length; ++i) {
-    vt102_putchar(cc, line[i]);
-  }
-}
-
-
-static uint8_t vt102_try_tab_complete(struct ConsoleConfig* cc, uint8_t callback_idx) {
-  // synthetically adding "help" at the end of the command list
-  const char* command = callback_idx >= cc->callback_count ?
-    "help" : cc->callbacks[callback_idx].command; 
-  uint8_t i=0;
-  for (; i < cc->tab_length; ++i) {
-    if (cc->line[i] != command[i]) {
-      return 0;
-    }
-  }
-  // it's a match
-  if (command[i]) {
-    uint16_t tab_length = cc->tab_length;
-    vt102_replace_current_line(cc, command);
-    cc->tab_length = tab_length;
-  }
-  cc->tab_callback_index = callback_idx;
-  return 1;
-}
-
-
-static void vt102_tab_pressed(struct ConsoleConfig* cc) {
-  for (uint8_t i=0; i < (cc->callback_count + 1); ++i) {
-    const uint8_t callback_idx = (cc->tab_callback_index + i + 1) % (cc->callback_count + 1);
-    if (vt102_try_tab_complete(cc, callback_idx)) {
-      return;
-    }
-  } 
-}
-
 
 static char parse_vt102_normal(struct ConsoleConfig* cc, char c) {
   if (c >= 32) {
@@ -466,9 +349,9 @@ static void dump_help(const struct ConsoleConfig* cc) {
 
 static uint8_t check_arg_count(const struct ConsoleCallback* cb, uint8_t argc) {
   if ((cb->num_args >= 0) && (cb->num_args != argc)) {
-    if (argc == 0) {
+    if (cb->num_args == 0) {
       printf("%s: Unexpected argument(s)\n", cb->command);
-    } else if (argc == 1) {
+    } else if (cb->num_args == 1) {
       printf("%s: Expected 1 argument\n", cb->command);
     } else {
       printf("%s: Expected %d arguments\n", cb->command, argc);
@@ -568,10 +451,10 @@ void uart_console_poll(
       // nothing to do
       break;
     case CONSOLE_ECHO:
-      echo(c);
+      uart_console_echo(c);
       break;
     case CONSOLE_DEBUG_ECHO:
-      debug_echo(c);
+      uart_console_debug_echo(c);
       break;
     case CONSOLE_VT102:
     case CONSOLE_DEBUG_VT102:
