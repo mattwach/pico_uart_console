@@ -259,7 +259,7 @@ static uint8_t vt102_try_tab_complete(struct ConsoleConfig* cc, uint8_t callback
 
 
 static void vt102_tab_pressed(struct ConsoleConfig* cc) {
-  for (uint8_t i=0; i < cc->callback_count; ++i) {
+  for (uint8_t i=0; i < (cc->callback_count + 1); ++i) {
     const uint8_t callback_idx = (cc->tab_callback_index + i + 1) % (cc->callback_count + 1);
     if (vt102_try_tab_complete(cc, callback_idx)) {
       return;
@@ -467,11 +467,11 @@ static void dump_help(const struct ConsoleConfig* cc) {
 static uint8_t check_arg_count(const struct ConsoleCallback* cb, uint8_t argc) {
   if ((cb->num_args >= 0) && (cb->num_args != argc)) {
     if (argc == 0) {
-      printf("%s: Unexpected argument(s)", cb->command);
+      printf("%s: Unexpected argument(s)\n", cb->command);
     } else if (argc == 1) {
-      printf("%s: Expected 1 argument", cb->command);
+      printf("%s: Expected 1 argument\n", cb->command);
     } else {
-      printf("%s: Expected %d arguments", cb->command, argc);
+      printf("%s: Expected %d arguments\n", cb->command, argc);
     }
     return 0;
   }

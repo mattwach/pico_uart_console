@@ -53,8 +53,8 @@ static void sleep_with_poll(struct ConsoleConfig* cc, uint32_t ms) {
   // an example so it's tolerated for simplicity's sake.
   stop_sleeping = 0;
   for (uint32_t elapsed_ms = SLEEP_STEP_MS;
-       !stop_sleeping && (elapsed_ms < ms);
-       ++elapsed_ms) {
+       !stop_sleeping && (elapsed_ms <= ms);
+       elapsed_ms += SLEEP_STEP_MS) {
     uart_console_poll(cc, "> ");
     sleep_ms(SLEEP_STEP_MS);
   }
