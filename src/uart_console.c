@@ -18,17 +18,32 @@ static void reset_line(struct ConsoleConfig* cc) {
 #endif
 }
 
+void uart_console_init_lowlevel(
+  struct ConsoleConfig* cc,
+  struct ConsoleCallback* callbacks,
+  uint8_t callback_count,
+  uint8_t mode,
+  int (*putchar)(int c)) {
+  memset(cc, 0, sizeof(struct ConsoleConfig));
+  cc->callbacks = callbacks;
+  cc->callback_count = callback_count;
+  cc->mode = mode;
+  cc->putchar = putchar;
+  reset_line(cc);
+}
+
 void uart_console_init(
   struct ConsoleConfig* cc,
   struct ConsoleCallback* callbacks,
   uint8_t callback_count,
   uint8_t mode) {
   stdio_init_all();
-  memset(cc, 0, sizeof(struct ConsoleConfig));
-  cc->callbacks = callbacks;
-  cc->callback_count = callback_count;
-  cc->mode = mode;
-  reset_line(cc);
+  uart_console_init_lowlevel(
+    cc,
+    callbacks,
+    callback_count,
+    mode,
+    putchar);
 }
 
 
@@ -40,10 +55,10 @@ static char process_mode(struct ConsoleConfig* cc, char c) {
       // nothing to do
       break;
     case CONSOLE_ECHO:
-      uart_console_echo(c);
+      console_putchar(cc, c);
       break;
     case CONSOLE_DEBUG_ECHO:
-      uart_console_debug_echo(c);
+      console_debug_putchar(cc, c);
       break;
     case CONSOLE_VT102:
     case CONSOLE_DEBUG_VT102:
@@ -81,12 +96,12 @@ void uart_console_putchar(struct ConsoleConfig* cc, char c) {
     reset_line(cc);
   } else if (c == 0x03) {
     // ctrl-c
-    printf("\nCancelled\n");
+    console_puts(cc, "\nCancelled\n");
     reset_line(cc);  
   } else if (c < 32) {
     // ignore this code
   } else if (cc->line_length >= CONSOLE_MAX_LINE_CHARS) {
-    printf("\nLine too long (>%d characters)\n", CONSOLE_MAX_LINE_CHARS);
+    console_printf(cc, "\nLine too long (>%d characters)\n", CONSOLE_MAX_LINE_CHARS);
     reset_line(cc);
   } else {
     insert_character(cc, c);
@@ -99,14 +114,14 @@ void uart_console_putchar(struct ConsoleConfig* cc, char c) {
 
 // Displays prompt for data
 static void show_prompt(struct ConsoleConfig* cc, const char* prompt) {
-  printf(prompt);
+  console_printf(cc, prompt);
   if (cc->mode == CONSOLE_VT102) {
     // put the terminal in insert mode
     // This is done every line in case the terminal was disconnected or reset.
-    putchar(0x1b);
-    putchar('[');
-    putchar('4');
-    putchar('h');
+    cc->putchar(0x1b);
+    cc->putchar('[');
+    cc->putchar('4');
+    cc->putchar('h');
   }
   cc->prompt_displayed = 1;
 }

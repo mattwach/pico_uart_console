@@ -4,14 +4,13 @@
 #include "uart_console/console.h"
 #include "util.h"
 #include <inttypes.h>
-#include <stdio.h>
 
 // outputs a single character
 static inline void vt102_putchar(struct ConsoleConfig* cc, char c) {
   if (cc->mode == CONSOLE_DEBUG_VT102) {
-    uart_console_debug_echo(c);
+    console_debug_putchar(cc, c);
   } else {
-    putchar(c);
+    cc->putchar(c);
   }
 }
 

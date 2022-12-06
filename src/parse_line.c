@@ -2,6 +2,7 @@
 // Contains logic for parsing a completed string into arguments
 // as well as invoking the callback function
 #include "parse_line.h"
+#include "util.h"
 #include "command_history.h"
 #include <stdio.h>
 #include <string.h>
@@ -10,20 +11,23 @@
 static void dump_help(const struct ConsoleConfig* cc) {
   for (uint8_t i=0; i < cc->callback_count; ++i) {
     const struct ConsoleCallback* cb = cc->callbacks + i;
-    printf("%s: %s\n", cb->command, cb->description);
+    console_printf(cc, "%s: %s\n", cb->command, cb->description);
   }
 }
 
 // Makes sure the number of provided arguments is what the command
 // is expecting.
-static uint8_t check_arg_count(const struct ConsoleCallback* cb, uint8_t argc) {
+static uint8_t check_arg_count(
+  const struct ConsoleConfig* cc,
+  const struct ConsoleCallback* cb,
+  uint8_t argc) {
   if ((cb->num_args >= 0) && (cb->num_args != argc)) {
     if (cb->num_args == 0) {
-      printf("%s: Unexpected argument(s)\n", cb->command);
+      console_printf(cc, "%s: Unexpected argument(s)\n", cb->command);
     } else if (cb->num_args == 1) {
-      printf("%s: Expected 1 argument\n", cb->command);
+      console_printf(cc, "%s: Expected 1 argument\n", cb->command);
     } else {
-      printf("%s: Expected %d arguments\n", cb->command, argc);
+      console_printf(cc, "%s: Expected %d arguments\n", cb->command, argc);
     }
     return 0;
   }
@@ -33,7 +37,10 @@ static uint8_t check_arg_count(const struct ConsoleCallback* cb, uint8_t argc) {
 // Converts spaces in cc->line to null characters.
 // There is some additional complication that stems from supporting
 // quotes "" and backslash characters.
-static int convert_spaces_to_nulls(char* line, uint16_t line_length) {
+static int convert_spaces_to_nulls(
+  const struct ConsoleConfig* cc,
+  char* line,
+  uint16_t line_length) {
   int16_t quote_start = -1;
   uint8_t backslash = 0;
   uint8_t last_was_whitespace = 1;
@@ -70,11 +77,11 @@ static int convert_spaces_to_nulls(char* line, uint16_t line_length) {
   }
 
   if (quote_start >= 0) {
-    printf("Unclosed quote\n");
+    console_printf(cc, "Unclosed quote\n");
     return 0;
   }
   if (backslash) {
-    printf("Line ended with backslash\n");
+    console_printf(cc, "Line ended with backslash\n");
     return 0;
   }
   return 1;
@@ -110,7 +117,7 @@ static uint16_t remove_backslashes(char* line, uint16_t line_length) {
 // command itself (this zero represents an error condition).
 static int split_args(struct ConsoleConfig* cc) {
   int num_args = 0;
-  if (!convert_spaces_to_nulls(cc->line, cc->line_length)) {
+  if (!convert_spaces_to_nulls(cc, cc->line, cc->line_length)) {
     return 0;
   }
   cc->line_length = remove_backslashes(cc->line, cc->line_length);
@@ -126,7 +133,7 @@ static int split_args(struct ConsoleConfig* cc) {
   for (uint16_t i=1; i<cc->line_length; ++i) {
     if ((cc->line[i] != 0) && (cc->line[i-1] == 0)) {
       if (num_args >= CONSOLE_MAX_ARGS) {
-        printf("Too many arguments (>%d)\n", CONSOLE_MAX_ARGS);
+        console_printf(cc, "Too many arguments (>%d)\n", CONSOLE_MAX_ARGS);
         return 0;
       }
       cc->arg[num_args] = cc->line + i;
@@ -156,7 +163,7 @@ void uart_console_parse_line(struct ConsoleConfig* cc) {
   for (uint8_t i=0; i < cc->callback_count; ++i) {
     struct ConsoleCallback* cb = cc->callbacks + i;
     if (!strcmp(command, cb->command)) {
-      if (check_arg_count(cb, num_args - 1)) {
+      if (check_arg_count(cc, cb, num_args - 1)) {
         cb->callback(num_args - 1, cc->arg + 1);
       }
       return;
@@ -169,6 +176,7 @@ void uart_console_parse_line(struct ConsoleConfig* cc) {
     return;
   }
 
-  printf(
+  console_printf(
+    cc,
     "Unknown Command \"%s\".  Try ? or \"help\".\n", command);
 }

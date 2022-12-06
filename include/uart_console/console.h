@@ -39,6 +39,10 @@ struct ConsoleConfig {
   struct ConsoleCallback* callbacks;
   uint8_t callback_count;
 
+  // putchar callback which allow for devices other than stdio
+  // to be used
+  int (*putchar)(int c);
+
   // Basic state that applies to all modes of operation
   char line[CONSOLE_MAX_LINE_CHARS + 1];
   uint16_t line_length;
@@ -66,12 +70,21 @@ struct ConsoleConfig {
 #endif
 };
 
-// Initializes console
+// Initializes console with output to stdout
 void uart_console_init(
   struct ConsoleConfig* cc,
   struct ConsoleCallback* callbacks,
   uint8_t callback_count,
   uint8_t flags);
+
+// Initalized console with custom output callback.  This allows non-stdio
+// devices (like an LCD screen or low-level hardware driver) to be used.
+void uart_console_init_lowlevel(
+  struct ConsoleConfig* cc,
+  struct ConsoleCallback* callbacks,
+  uint8_t callback_count,
+  uint8_t mode,
+  int (*putchar)(int c));
 
 // Polls for some characters using getchar_timeout_us().  This function may call
 // any of the callbacks defined in ConsoleConfig before returning.

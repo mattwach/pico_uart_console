@@ -124,8 +124,8 @@ int main() {
 The polling function must be called regularly to give the user a responsive
 experience and not miss data.
 
-Any time that `uart_console_poll()` is called, these functions may invoke a
-registered callback function before returning themselves.  For this example,
+Any time that `uart_console_poll()` is called, it may invoke a
+registered callback function before returning.  For this example,
 that means that the `hello_cmd()` callback could get called as a result
 of calling `uart_console_poll()`.
 
@@ -135,10 +135,39 @@ will also occur on CPU1.  You'll thus need a way to coordinate communications
 between CPU1 and CPU0.  The Pico SDK provides locks, message queues and other
 mechanisms for this purpose.
 
-> Advanced Usage Note: You *could theoretically* collect characters using an
-interrupt handler, buffer these characters, then process them when-convenient by
-calling `uart_console_putchar()` instead of `uart_console_poll()`, but
-this method is currently not supported. This is because library code is using
-`stdio.h` for printing error and help messages and `stdio_init_all()` will setup
-the UART hardware for its own purposes when called. Adding support would involve
-adding a way (such as an optional callback hooks) to bypass `stdio` completely.
+or, you can use the lowlevel API functions described below.
+
+## Low Level API
+
+For the sake of convienence, the default usage pattern uses `uart_console_init()` and `uart_console_poll()`.  While easy to use, these do have some limitations:
+
+  1. You are locked into the `stdio` path.  If you wanted to direct characters
+  to an attached LCD, this is not going to work out.
+
+  2. You may want to use interrupts instead of polling.
+
+  3. You may want to get input from something other than the UART/USB (such as connected hardware that is using SPI or I2C).
+
+For all of these cases:
+
+  1. If you want to feed input characters from a custom source, you can use `uart_console_putchar()`.
+
+  2. If you want to output characters (prompt, help text) to a custom device,
+  you can use `uart_console_init_lowlevel()`, which takes a `int (*putchar)(int
+  c)` callback.  You can have this callback point to a custom function that handles
+  the data in any way you would like (for example, sending it to an LCD).
+
+  3. The options above are mix/match.  You can use either `uart_console_poll()` or
+  `uart_console_putchar()` and match it up with either `uart_console_init()` or
+  `uart_console_init_lowlevel()`.
+
+  4. One caveat.  If you are using `uart_console_init_lowlevel()` with `uart_console_poll()`, you need to call `stdio_init_all()` yourself becuase `uart_console_init_lowlevel()` has no idea if you want that called or not.
+
+  5. Another one.  Calling `uart_console_putchar()` directly from an interrupt
+  handler is soething to think about cautiously because any registered callbacks
+  and output produced would also be serviced by the interrupt.  In many cases,
+  you'll want to have the interrupt handler buffer the characters somewhere and
+  have the main thread feed this buffer to `uart_console_putchar()` when it can.
+  This turns out to be pretty similar to what happens using the `stdio` route
+  but you'll have control over the details.
+

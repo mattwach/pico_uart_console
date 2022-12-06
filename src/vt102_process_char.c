@@ -135,16 +135,20 @@ void vt102_dump_internal_state(struct ConsoleConfig* cc) {
       break;
   }
 
-  printf("state=%s line_length=%d cursor_index=%d\n", state, cc->line_length, cc->cursor_index);
-  putchar('"');
+  console_printf(
+      cc,
+      "state=%s line_length=%d cursor_index=%d\n",
+      state,
+      cc->line_length,
+      cc->cursor_index);
+  console_putchar(cc, '"');
   for (uint16_t i=0; i<cc->line_length; ++i) {
-    putchar(cc->line[i]);
+    console_putchar(cc, cc->line[i]);
   }
-  printf("\"\n");
-  putchar(' ');
+  console_puts(cc, "\"\n ");
   for (uint16_t i=0; i<cc->cursor_index; ++i) {
-    putchar(' ');
+    console_putchar(cc, ' ');
   }
-  printf("^\n");
+  console_puts(cc, "^\n");
 }
 
