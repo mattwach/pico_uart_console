@@ -73,8 +73,13 @@ void uart_console_init(
   uint8_t callback_count,
   uint8_t flags);
 
-// Polls for some characters.  This function may call any of the callbacks
-// defined in ConsoleConfig before returning.
+// Polls for some characters using getchar_timeout_us().  This function may call
+// any of the callbacks defined in ConsoleConfig before returning.
 void uart_console_poll(struct ConsoleConfig* cc, const char* prompt);
+
+// Provides a character for processing.  This can be used for more advanced
+// usecases where one wants to avoid calling getchar_time_us().  An example
+// would be collecting uart character via an interrupt handler. 
+void uart_console_process_character(struct ConsoleConfig* cc, char c);
 
 #endif

@@ -31,30 +31,10 @@ void uart_console_init(
   reset_line(cc);
 }
 
-void uart_console_poll(
-    struct ConsoleConfig* cc,
-    const char* prompt) {
-  if ((cc->prompt_displayed == 0) && (cc->mode != CONSOLE_MINIMAL)) {
-    printf(prompt);
-    if (cc->mode == CONSOLE_VT102) {
-      // put the terminal in insert mode
-      // This is done every line in case the terminal was disconnected or reset.
-      putchar(0x1b);
-      putchar('[');
-      putchar('4');
-      putchar('h');
-    }
-    cc->prompt_displayed = 1;
-  }
 
-  const int cint = getchar_timeout_us(0);
-  if ((cint < 0) || (cint > 127)) {
-    // didn't get anything
-    return;
-  }
-
-  char c = (char)cint;
-
+// Processes (and possibly modifies) an incoming character based on the
+//console's current mode
+static char process_mode(struct ConsoleConfig* cc, char c) {
   switch (cc->mode) {
     case CONSOLE_MINIMAL:
       // nothing to do
@@ -70,7 +50,32 @@ void uart_console_poll(
       c = vt102_process_char(cc, c);
       break;
   }
+  return c;
+}
 
+// inserts a character into cc->line
+static void insert_character(struct ConsoleConfig* cc, char c) {
+  if (cc->line_length > cc->cursor_index) {
+    // need to insert a character into line 
+    // make a spot for it
+    memmove(
+      cc->line + cc->cursor_index + 1,
+      cc->line + cc->cursor_index,
+      cc->line_length - cc->cursor_index);
+  } 
+
+  // fill it in
+  cc->line[cc->cursor_index] = c;
+
+  // update indexes
+  ++cc->line_length;
+  ++cc->cursor_index;
+  cc->tab_length = cc->line_length;
+} 
+
+// Process a received character from the UART
+void uart_console_process_character(struct ConsoleConfig* cc, char c) { 
+  c = process_mode(cc, c);
   if (c == '\r') {
     uart_console_parse_line(cc);
     reset_line(cc);
@@ -84,25 +89,39 @@ void uart_console_poll(
     printf("\nLine too long (>%d characters)\n", CONSOLE_MAX_LINE_CHARS);
     reset_line(cc);
   } else {
-    if (cc->line_length > cc->cursor_index) {
-      // need to insert a charactrer into line 
-      // make a spot for it
-      memmove(
-        cc->line + cc->cursor_index + 1,
-        cc->line + cc->cursor_index,
-        cc->line_length - cc->cursor_index);
-    } 
-
-    // fill it in
-    cc->line[cc->cursor_index] = c;
-
-    // update indexes
-    ++cc->line_length;
-    ++cc->cursor_index;
-    cc->tab_length = cc->line_length;
+    insert_character(cc, c);
   }
 
   if (cc->mode == CONSOLE_DEBUG_VT102) {
     vt102_dump_internal_state(cc);
+  }
+}
+
+// Displays prompt for data
+static void show_prompt(struct ConsoleConfig* cc, const char* prompt) {
+  printf(prompt);
+  if (cc->mode == CONSOLE_VT102) {
+    // put the terminal in insert mode
+    // This is done every line in case the terminal was disconnected or reset.
+    putchar(0x1b);
+    putchar('[');
+    putchar('4');
+    putchar('h');
+  }
+  cc->prompt_displayed = 1;
+}
+
+void uart_console_poll(struct ConsoleConfig* cc, const char* prompt) {
+  if ((cc->prompt_displayed == 0) && (cc->mode != CONSOLE_MINIMAL)) {
+    show_prompt(cc, prompt);
+  }
+
+  while (1) {
+    const int cint = getchar_timeout_us(0);
+    if ((cint < 0) || (cint > 127)) {
+      // didn't get anything
+      break;
+    }
+    uart_console_process_character(cc, (char)cint);
   }
 }
