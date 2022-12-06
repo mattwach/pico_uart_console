@@ -27,6 +27,11 @@
 // VT102 debug mode.  Instead of echoning back codes, it shows internal state
 #define CONSOLE_DEBUG_VT102      0x05
 
+// Internal vt100 states (terminal_state)
+#define VT102_NORMAL  0x00
+#define VT102_ESCAPE  0x01
+#define VT102_ESCAPE2 0x02
+
 struct ConsoleCallback {
   const char* command;
   const char* description;
@@ -88,7 +93,8 @@ void uart_console_init_lowlevel(
 
 // Polls for some characters using getchar_timeout_us().  This function may call
 // any of the callbacks defined in ConsoleConfig before returning.
-void uart_console_poll(struct ConsoleConfig* cc, const char* prompt);
+// returns the number of characters processed.
+uint32_t uart_console_poll(struct ConsoleConfig* cc, const char* prompt);
 
 // Provides a character for processing.  This can be used for more advanced
 // usecases where one wants to avoid calling getchar_time_us().  An example

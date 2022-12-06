@@ -3,10 +3,6 @@
 #include "command_history.h"
 #include <string.h>
 
-#define VT102_NORMAL  0x00
-#define VT102_ESCAPE  0x01
-#define VT102_ESCAPE2 0x02
-
 static void vt102_backspace(struct ConsoleConfig* cc) {
   if (cc->cursor_index == 0) {
     // can't backspace

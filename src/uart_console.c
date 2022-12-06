@@ -126,11 +126,12 @@ static void show_prompt(struct ConsoleConfig* cc, const char* prompt) {
   cc->prompt_displayed = 1;
 }
 
-void uart_console_poll(struct ConsoleConfig* cc, const char* prompt) {
+uint32_t uart_console_poll(struct ConsoleConfig* cc, const char* prompt) {
   if ((cc->prompt_displayed == 0) && (cc->terminal != CONSOLE_MINIMAL)) {
     show_prompt(cc, prompt);
   }
 
+  uint32_t num_processed = 0;
   while (1) {
     const int cint = getchar_timeout_us(0);
     if ((cint < 0) || (cint > 127)) {
@@ -138,5 +139,8 @@ void uart_console_poll(struct ConsoleConfig* cc, const char* prompt) {
       break;
     }
     uart_console_putchar(cc, (char)cint);
+    ++num_processed;
   }
+
+  return num_processed;
 }
