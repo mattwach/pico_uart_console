@@ -41,6 +41,8 @@ int main() {
 
 and an example session (as found in [examples/minimal/main.c](examples/minimal/main.c)):
 
+![terminal](images/terminal.png)
+
 To build the `uart_console_minimal.uf2` binary that can be loaded on the PICO:
 
 ```bash
