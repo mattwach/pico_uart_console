@@ -43,7 +43,7 @@ and an example session (as found in [examples/minimal/main.c](examples/minimal/m
 
 ![terminal](images/terminal.png)
 
-To build the `uart_console_minimal.uf2` binary that can be loaded on the PICO:
+To build the `uart_console_minimal.uf2` binary that can be loaded on a PI Pico:
 
 ```bash
 ./bootstrap.sh
@@ -51,8 +51,8 @@ cd build/examples/minimal
 make
 ```
 
-Note that, by default, the console uses the USB version of the console.  To use
-the serial connection instead change
+Note that, by default, the console uses the USB interface.  To use the UART
+pins instead change
 [examples/minimal/CMakeLists.txt](examples/minimal/CMakeLists.txt):
 
 ```cmake
@@ -83,14 +83,14 @@ struct ConsoleCallback callbacks[] = {
 ```
 
 Here we give the command name, a description string (for when the user enters
-`help`), the number of expected arguments and the name of the defined callback
+`help`), the number of expected arguments and a pointer to the defined callback
 function.
 
 > Note that an entry can use `-1` for the number of arguments to accept any
 number.  In that case, the callback function will need to look at `argc` and
 handle correct usage itself.
 
-Next initilization:
+Next initialization:
 
 ```c
 int main() {
@@ -100,11 +100,11 @@ int main() {
 }
 ```
 
-We need to create a `ConsoleConfig` structure to hold the state of the console.
+We need to allocate a `ConsoleConfig` structure to hold the state of the console.
 We then initialize it will the defined callbacks, the number of callbacks (in
-this case just `1`) and the type of console we we to use (called the `mode`),
+this case just `1`) and the type of console we we to use (called the *console terminal*),
 
-> Note: The console mode can be changed at any time by changing the `mode` field
+> Note: The console mode can be changed at any time by changing the `terminal` field
 in `ConsoleConfig`.  Thus you might have a command to change it from
 `CONSOLE_VT102` to `CONSOLE_MINIMAL` for program access.
 
@@ -139,32 +139,33 @@ or, you can use the lowlevel API functions described below.
 
 ## Low Level API
 
-For the sake of convienence, the default usage pattern uses `uart_console_init()` and `uart_console_poll()`.  While easy to use, these do have some limitations:
+For the sake of convenience, the default usage pattern uses `uart_console_init()` and `uart_console_poll()`.  While easy to use, these do have some limitations:
 
-  1. You are locked into the `stdio` path.  If you wanted to direct characters
-  to an attached LCD, this is not going to work out.
+  1. These functions call into the `stdio` library.  You may want input and output to be directed differently.
 
   2. You may want to use interrupts instead of polling.
 
-  3. You may want to get input from something other than the UART/USB (such as connected hardware that is using SPI or I2C).
+For both of these cases:
 
-For all of these cases:
-
-  1. If you want to feed input characters from a custom source, you can use `uart_console_putchar()`.
+  1. If you want to use input characters from a custom source, you can call
+  `uart_console_putchar()` to feed them in.
 
   2. If you want to output characters (prompt, help text) to a custom device,
   you can use `uart_console_init_lowlevel()`, which takes a `int (*putchar)(int
-  c)` callback.  You can have this callback point to a custom function that handles
-  the data in any way you would like (for example, sending it to an LCD).
+  c)` callback.  You can have this callback point to a custom function that
+  handles the data in any way you would like (for example, sending it to an
+  LCD).
 
-  3. The options above are mix/match.  You can use either `uart_console_poll()` or
+  The options above are mix/match.  You can use either `uart_console_poll()` or
   `uart_console_putchar()` and match it up with either `uart_console_init()` or
   `uart_console_init_lowlevel()`.
 
-  4. One caveat.  If you are using `uart_console_init_lowlevel()` with `uart_console_poll()`, you need to call `stdio_init_all()` yourself becuase `uart_console_init_lowlevel()` has no idea if you want that called or not.
+  > One caveat.  If you are using `uart_console_init_lowlevel()` with
+  `uart_console_poll()`, you need to call `stdio_init_all()` yourself becuase
+  `uart_console_init_lowlevel()` internationally does nothing with `stdio`.
 
-  5. Another one.  Calling `uart_console_putchar()` directly from an interrupt
-  handler is soething to think about cautiously because any registered callbacks
+  > Another caveat.  Calling `uart_console_putchar()` directly from an interrupt
+  handler is something to think about cautiously because any registered callbacks
   and output produced would also be serviced by the interrupt.  In many cases,
   you'll want to have the interrupt handler buffer the characters somewhere and
   have the main thread feed this buffer to `uart_console_putchar()` when it can.

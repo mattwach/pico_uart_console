@@ -47,7 +47,7 @@ struct ConsoleConfig {
   char line[CONSOLE_MAX_LINE_CHARS + 1];
   uint16_t line_length;
   char* arg[CONSOLE_MAX_ARGS];
-  uint8_t mode;
+  uint8_t terminal;  // terminal type (CONSOLE_VT102, CONSOLE_MINIMAL, etc)
   uint8_t prompt_displayed;
 
   // extra state needed for vt102 modes

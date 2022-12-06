@@ -7,7 +7,7 @@
 
 // outputs a single character
 static inline void vt102_putchar(struct ConsoleConfig* cc, char c) {
-  if (cc->mode == CONSOLE_DEBUG_VT102) {
+  if (cc->terminal == CONSOLE_DEBUG_VT102) {
     console_debug_putchar(cc, c);
   } else {
     cc->putchar(c);

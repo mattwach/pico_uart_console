@@ -22,12 +22,12 @@ void uart_console_init_lowlevel(
   struct ConsoleConfig* cc,
   struct ConsoleCallback* callbacks,
   uint8_t callback_count,
-  uint8_t mode,
+  uint8_t terminal,
   int (*putchar)(int c)) {
   memset(cc, 0, sizeof(struct ConsoleConfig));
   cc->callbacks = callbacks;
   cc->callback_count = callback_count;
-  cc->mode = mode;
+  cc->terminal = terminal;
   cc->putchar = putchar;
   reset_line(cc);
 }
@@ -36,13 +36,13 @@ void uart_console_init(
   struct ConsoleConfig* cc,
   struct ConsoleCallback* callbacks,
   uint8_t callback_count,
-  uint8_t mode) {
+  uint8_t terminal) {
   stdio_init_all();
   uart_console_init_lowlevel(
     cc,
     callbacks,
     callback_count,
-    mode,
+    terminal,
     putchar);
 }
 
@@ -50,7 +50,7 @@ void uart_console_init(
 // Processes (and possibly modifies) an incoming character based on the
 //console's current mode
 static char process_mode(struct ConsoleConfig* cc, char c) {
-  switch (cc->mode) {
+  switch (cc->terminal) {
     case CONSOLE_MINIMAL:
       // nothing to do
       break;
@@ -107,7 +107,7 @@ void uart_console_putchar(struct ConsoleConfig* cc, char c) {
     insert_character(cc, c);
   }
 
-  if (cc->mode == CONSOLE_DEBUG_VT102) {
+  if (cc->terminal == CONSOLE_DEBUG_VT102) {
     vt102_dump_internal_state(cc);
   }
 }
@@ -115,7 +115,7 @@ void uart_console_putchar(struct ConsoleConfig* cc, char c) {
 // Displays prompt for data
 static void show_prompt(struct ConsoleConfig* cc, const char* prompt) {
   console_printf(cc, prompt);
-  if (cc->mode == CONSOLE_VT102) {
+  if (cc->terminal == CONSOLE_VT102) {
     // put the terminal in insert mode
     // This is done every line in case the terminal was disconnected or reset.
     cc->putchar(0x1b);
@@ -127,7 +127,7 @@ static void show_prompt(struct ConsoleConfig* cc, const char* prompt) {
 }
 
 void uart_console_poll(struct ConsoleConfig* cc, const char* prompt) {
-  if ((cc->prompt_displayed == 0) && (cc->mode != CONSOLE_MINIMAL)) {
+  if ((cc->prompt_displayed == 0) && (cc->terminal != CONSOLE_MINIMAL)) {
     show_prompt(cc, prompt);
   }
 

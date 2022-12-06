@@ -2,5 +2,8 @@
   "cSpell.words": [
     "PICO",
     "uart"
-  ]
+  ],
+  "files.associations": {
+    "limits": "c"
+  }
 }
