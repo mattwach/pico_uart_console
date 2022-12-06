@@ -41,7 +41,7 @@ int main() {
 
 and an example session (as found in [examples/minimal/main.c](examples/minimal/main.c)):
 
-To build the `` that can be loaded on the PICO:
+To build the `uart_console_minimal.uf2` binary that can be loaded on the PICO:
 
 ```bash
 ./bootstrap.sh
@@ -49,7 +49,7 @@ cd build/examples/minimal
 make
 ```
 
-Note that, by default, the console uses the USB version of the console.  TO use
+Note that, by default, the console uses the USB version of the console.  To use
 the serial connection instead change
 [examples/minimal/CMakeLists.txt](examples/minimal/CMakeLists.txt):
 
@@ -98,7 +98,9 @@ int main() {
 }
 ```
 
-We need to create a `ConsoleConfig` structure to hold the state of the console.  We then initialize it will the defined callbacks, the number of callbacks (in this case just `1`) and the type of console we we to use (called the `mode`),
+We need to create a `ConsoleConfig` structure to hold the state of the console.
+We then initialize it will the defined callbacks, the number of callbacks (in
+this case just `1`) and the type of console we we to use (called the `mode`),
 
 > Note: The console mode can be changed at any time by changing the `mode` field
 in `ConsoleConfig`.  Thus you might have a command to change it from
@@ -118,13 +120,23 @@ int main() {
 ```
 
 The polling function must be called regularly to give the user a responsive
-experience and not miss data.  If polling is unworkable, you have two fallback
-options:
+experience and not miss data.
 
-  1. You could put all of the command processing on CPU1 for better
-  responsiveness but you'll then need a way to communicate the needed state
-  between CPU1 and CPU0.
+Any time that `uart_console_poll()` is called, these functions may invoke a
+registered callback function before returning themselves.  For this example,
+that means that the `hello_cmd()` callback could get called as a result
+of calling `uart_console_poll()`.
 
-  2. You can collect characters using an interrupt handler, buffer these
-  characters, then process them when-convenient by calling
-  `uart_console_process_character()` instead of `uart_console_poll()`.
+If this simple polling model is unworkable for your program, you could put all
+of the command processing on CPU1 for better responsiveness but then callbacks
+will also occur on CPU1.  You'll thus need a way to coordinate communications
+between CPU1 and CPU0.  The Pico SDK provides locks, message queues and other
+mechanisms for this purpose.
+
+> Advanced Usage Note: You *could theoretically* collect characters using an
+interrupt handler, buffer these characters, then process them when-convenient by
+calling `uart_console_process_character()` instead of `uart_console_poll()`, but
+this method is currently not supported. This is because library code is using
+`stdio.h` for printing error and help messages and `stdio_init_all()` will setup
+the UART hardware for its own purposes when called. Adding support would involve
+adding a way (such as an optional callback hooks) to bypass `stdio` completely.
