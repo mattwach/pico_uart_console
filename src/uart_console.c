@@ -74,7 +74,7 @@ static void insert_character(struct ConsoleConfig* cc, char c) {
 } 
 
 // Process a received character from the UART
-void uart_console_process_character(struct ConsoleConfig* cc, char c) { 
+void uart_console_putchar(struct ConsoleConfig* cc, char c) { 
   c = process_mode(cc, c);
   if (c == '\r') {
     uart_console_parse_line(cc);
@@ -122,6 +122,6 @@ void uart_console_poll(struct ConsoleConfig* cc, const char* prompt) {
       // didn't get anything
       break;
     }
-    uart_console_process_character(cc, (char)cint);
+    uart_console_putchar(cc, (char)cint);
   }
 }

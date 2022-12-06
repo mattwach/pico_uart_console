@@ -80,6 +80,6 @@ void uart_console_poll(struct ConsoleConfig* cc, const char* prompt);
 // Provides a character for processing.  This can be used for more advanced
 // usecases where one wants to avoid calling getchar_time_us().  An example
 // would be collecting uart character via an interrupt handler. 
-void uart_console_process_character(struct ConsoleConfig* cc, char c);
+void uart_console_putchar(struct ConsoleConfig* cc, char c);
 
 #endif

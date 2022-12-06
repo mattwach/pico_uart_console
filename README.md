@@ -137,7 +137,7 @@ mechanisms for this purpose.
 
 > Advanced Usage Note: You *could theoretically* collect characters using an
 interrupt handler, buffer these characters, then process them when-convenient by
-calling `uart_console_process_character()` instead of `uart_console_poll()`, but
+calling `uart_console_putchar()` instead of `uart_console_poll()`, but
 this method is currently not supported. This is because library code is using
 `stdio.h` for printing error and help messages and `stdio_init_all()` will setup
 the UART hardware for its own purposes when called. Adding support would involve
