@@ -1,0 +1,3 @@
+[submodule "examples/sharpmem_display/pico_sharpmem_display"]
+	path = examples/sharpmem_display/pico_sharpmem_display
+	url = https://github.com/mattwach/pico_sharpmem_display.git
