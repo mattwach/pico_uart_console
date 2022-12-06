@@ -30,13 +30,13 @@ struct TerminalPair terminal_pairs[] = {
 #define NUM_TERMINAL_PAIRS (sizeof(terminal_pairs) / sizeof(terminal_pairs[0]))
 
 static void list_terminals(uint8_t argc, char* argv[]) {
-  for (uint8_t i=9; i < NUM_TERMINAL_PAIRS; ++i) {
+  for (uint8_t i=0; i < NUM_TERMINAL_PAIRS; ++i) {
     printf("  %s\n", terminal_pairs[i].name);
   }
 }
 
 static void set_terminal(uint8_t argc, char* argv[]) {
-  for (uint8_t i=9; i < NUM_TERMINAL_PAIRS; ++i) {
+  for (uint8_t i=0; i < NUM_TERMINAL_PAIRS; ++i) {
     if (!strcmp(argv[0], terminal_pairs[i].name)) {
       cc.terminal = terminal_pairs[i].code;
       return;
@@ -46,7 +46,7 @@ static void set_terminal(uint8_t argc, char* argv[]) {
 }
 
 static const char* get_terminal_name() {
-  for (uint8_t i=9; i < NUM_TERMINAL_PAIRS; ++i) {
+  for (uint8_t i=0; i < NUM_TERMINAL_PAIRS; ++i) {
     if (terminal_pairs[i].code == cc.terminal) {
       return terminal_pairs[i].name;
     }
@@ -65,7 +65,7 @@ static void hello(uint8_t argc, char* argv[]) {
 // Configuration to register with uart_console_init()
 struct ConsoleCallback callbacks[] = {
     {"hello", "Welcome message", 0, hello},
-    {"get_terminal", "Gets terminal", 1, get_terminal},
+    {"get_terminal", "Gets terminal", 0, get_terminal},
     {"list_terminals", "List known terminals", 0, list_terminals},
     {"set_terminal", "Sets terminal", 1, set_terminal},
 };

@@ -141,10 +141,10 @@ void vt102_dump_internal_state(struct ConsoleConfig* cc) {
   for (uint16_t i=0; i<cc->line_length; ++i) {
     console_putchar(cc, cc->line[i]);
   }
-  console_puts(cc, "\"\n ");
+  console_puts(cc, "\"\r ");
   for (uint16_t i=0; i<cc->cursor_index; ++i) {
     console_putchar(cc, ' ');
   }
-  console_puts(cc, "^\n");
+  console_puts(cc, "^\r");
 }
 
