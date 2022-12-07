@@ -1,2 +1,3 @@
 add_subdirectory(pico_sharpmem_display)
+add_subdirectory(sharp_as_output)
 add_subdirectory(show_internal_state)

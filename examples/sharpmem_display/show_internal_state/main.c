@@ -85,7 +85,7 @@ static void sharp_debug_init(void) {
       10000000
   );
   sharpconsole_init(&console, &sd, liberation_mono_14, 32);
-  sharpconsole_printf(&console, "Console Initailized\n");
+  sharpconsole_printf(&console, "Console Initialized\n");
   sharpconsole_flush(&console);
 }
 
