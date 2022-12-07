@@ -32,7 +32,8 @@ static void sharp_init(void) {
       WIDTH,
       HEIGHT,
       0x00,
-      1,  // GP1 for CS (Adafruit RP2040)
+//      1,  // GP1 for CS (Adafruit RP2040)
+      17,  // GP17 for CS (PI Pico)
       18,  // GP18 for SCK
       19,  // GP19 for MOSI
       spi0,

@@ -4,8 +4,8 @@
 #include <string.h>
 #include "uart_console/console.h"
 
-#define LED_PIN 11  // Adafruit Itsy RP2040
-//#define LED_PIN PICO_DEFAULT_LED_PIN
+//#define LED_PIN 11  // Adafruit Itsy RP2040
+#define LED_PIN PICO_DEFAULT_LED_PIN
 
 uint8_t stop_sleeping;
 uint32_t led_on_ms;

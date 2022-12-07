@@ -4,7 +4,7 @@ This project provides an easy-to-integrate console for C-based PI PICO Projects.
 To accommodate different usage scenarios, different console "modes" are provided:
 
   * `CONSOLE_MINIMAL`: Silently consumes characters.  Mostly intended for
-  program API use (e.g. writing a python program that sends commands to the
+  program API use (e.g. writing a Python program that sends commands to the
   PICO)
   * `CONSOLE_ECHO`: Echos back characters for terminals that provide no
   editing support.
@@ -12,7 +12,7 @@ To accommodate different usage scenarios, different console "modes" are provided
   emulator, this mode provides rich editing features.  This includes cursor
   control, insert mode, command history, and tab completion.
 
-  Here is a minimal example that uses the library:
+  Here is a minimal example that uses the library (as found in [examples/minimal/main.c](examples/minimal/main.c)):
 
 ```c
 #include "pico/stdlib.h"
@@ -39,7 +39,7 @@ int main() {
 }
 ```
 
-and an example session (as found in [examples/minimal/main.c](examples/minimal/main.c)):
+and an example session:
 
 ![terminal](images/terminal.png)
 
@@ -86,9 +86,10 @@ Here we give the command name, a description string (for when the user enters
 `help`), the number of expected arguments and a pointer to the defined callback
 function.
 
-> Note that an entry can use `-1` for the number of arguments to accept any
-number.  In that case, the callback function will need to look at `argc` and
-handle correct usage itself.
+> Note that an entry can use `-1` for the number of arguments to accept anywhere
+between `0` and `CONSOLE_MAX_ARGS` (which is defined in
+[console.h](include/uart_console/console.h)).  When using `-1`, the callback
+function will need to look at `argc` and handle related usage errors itself.
 
 Next initialization:
 
@@ -157,6 +158,11 @@ For both of these cases:
   handles the data in any way you would like (for example, sending it to an
   LCD).
 
+  The [sharp_as_output](examples/sharpmem_display/sharp_as_output/main.c)
+  example gives a demonstration.  You will need a [Sharp Memory
+  Display](https://www.adafruit.com/product/4694) to actually run the demo,
+  unless you hack the code to work with something else.
+
   The options above are mix/match.  You can use either `uart_console_poll()` or
   `uart_console_putchar()` and match it up with either `uart_console_init()` or
   `uart_console_init_lowlevel()`.
@@ -172,11 +178,6 @@ For both of these cases:
   have the main thread feed this buffer to `uart_console_putchar()` when it can.
   This turns out to be pretty similar to what happens using the `stdio` route
   but you'll have control over the details.
-
-  The [sharp_as_output](examples/sharpmem_display/sharp_as_output/main.c)
-  example gives a demonstration.  You will need a [Sharp Memory
-  Display](https://www.adafruit.com/product/4694) to actually run the demo,
-  unless you hack the code to work with something else.
 
   ## Internal State Debug
 
