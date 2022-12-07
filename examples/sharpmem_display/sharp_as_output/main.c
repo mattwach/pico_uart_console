@@ -46,17 +46,19 @@ static void sharp_init(void) {
 
 static int sharp_putchar(int c) {
   sharpconsole_char(&console, c);
+  return 0;
 }
 
 // program entry point
 int main() {
   sleep_ms(500); // let sharp display power up
+  stdio_init_all();
   sharp_init();
   uart_console_init_lowlevel(
       &cc,
       callbacks,
       sizeof(callbacks) / sizeof(callbacks[0]),
-      CONSOLE_VT102,
+      CONSOLE_ECHO,
       sharp_putchar);
 
 
