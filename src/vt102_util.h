@@ -25,4 +25,7 @@ void vt102_erase_current_line(struct ConsoleConfig* cc);
 
 // Replaces the current line with the given string
 void vt102_replace_current_line(struct ConsoleConfig* cc, const char* line);
+
+// Instructs the teminal to use insert mode
+void vt102_insert_mode(struct ConsoleConfig* cc);
 #endif

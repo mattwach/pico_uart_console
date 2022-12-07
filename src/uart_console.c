@@ -6,6 +6,7 @@
 #include "util.h"
 #include "parse_line.h"
 #include "vt102_process_char.h"
+#include "vt102_util.h"
 
 static void reset_line(struct ConsoleConfig* cc) {
   cc->line_length = 0;
@@ -116,12 +117,7 @@ void uart_console_putchar(struct ConsoleConfig* cc, char c) {
 static void show_prompt(struct ConsoleConfig* cc, const char* prompt) {
   console_printf(cc, prompt);
   if (cc->terminal == CONSOLE_VT102) {
-    // put the terminal in insert mode
-    // This is done every line in case the terminal was disconnected or reset.
-    cc->putchar(0x1b);
-    cc->putchar('[');
-    cc->putchar('4');
-    cc->putchar('h');
+    vt102_insert_mode(cc);
   }
   cc->prompt_displayed = 1;
 }

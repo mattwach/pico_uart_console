@@ -67,3 +67,10 @@ void vt102_replace_current_line(struct ConsoleConfig* cc, const char* line) {
     vt102_putchar(cc, line[i]);
   }
 }
+
+void vt102_insert_mode(struct ConsoleConfig* cc) {
+  cc->putchar(0x1b);
+  cc->putchar('[');
+  cc->putchar('4');
+  cc->putchar('h');
+}
