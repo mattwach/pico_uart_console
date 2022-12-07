@@ -104,9 +104,10 @@ We need to allocate a `ConsoleConfig` structure to hold the state of the console
 We then initialize it will the defined callbacks, the number of callbacks (in
 this case just `1`) and the type of console we we to use (called the *console terminal*),
 
-> Note: The console mode can be changed at any time by changing the `terminal` field
-in `ConsoleConfig`.  Thus you might have a command to change it from
-`CONSOLE_VT102` to `CONSOLE_MINIMAL` for program access.
+> Note: The console mode can be changed at any time by changing the `terminal`
+field in `ConsoleConfig`.  Thus you might have a command to change it from
+`CONSOLE_VT102` to `CONSOLE_MINIMAL` for program access.  The
+[terminal_modes](examples/terminal_modes/main.c) example demonstrates this.
 
 Finally the polling function:
 
@@ -171,4 +172,27 @@ For both of these cases:
   have the main thread feed this buffer to `uart_console_putchar()` when it can.
   This turns out to be pretty similar to what happens using the `stdio` route
   but you'll have control over the details.
+
+  The [sharp_as_output](examples/sharpmem_display/sharp_as_output/main.c)
+  example gives a demonstration.  You will need a [Sharp Memory
+  Display](https://www.adafruit.com/product/4694) to actually run the demo,
+  unless you hack the code to work with something else.
+
+  ## Internal State Debug
+
+  If you have a [Sharp Memory Display](https://www.adafruit.com/product/4694),
+  you can run the
+  [show_internal_state](examples/sharpmem_display/show_internal_state/) tool to
+  look at internal `ConsoleConfig` state as characters are typed.  If not, the code
+  can be changed to work with something else.
+
+  To compile it, you'll need to initialize submodules to grab the needed dependency code:
+
+  ```bash
+  git submodule init
+  git submodule update
+  ./bootstrap.sh
+  ```
+
+![sharp display](images/sharp_disp.jpg)
 
