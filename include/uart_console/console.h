@@ -15,11 +15,11 @@
 #endif
 
 // Console Mode
-// Consumes characters 32-126.  No echo or editing.
+// Consumes characters 32-254.  No echo or editing.
 #define CONSOLE_MINIMAL          0x00
-// Consumes characters 32-126.  Echos consumed characters.  No editing.
+// Consumes characters 32-254.  Echos consumed characters.  No editing.
 #define CONSOLE_ECHO             0x01
-// Consumes characters 32-126.  Echos all characters back as codes.  No editing.
+// Consumes characters 32-254.  Echos all characters back as codes.  No editing.
 #define CONSOLE_DEBUG_ECHO       0x03
 // Tries to emulate VT102 at a basic level.  Supports ctrl-a, ctrl-c, ctrl-e,
 // del, backspace, and arrows

@@ -20,7 +20,7 @@ void console_puts(const struct ConsoleConfig* cc, const char* s) {
 
 void console_debug_putchar(const struct ConsoleConfig* cc, char c) {
   console_printf(cc, "%03d %02x ", c, c);
-  if ((c >= 32) && (c <= 126)) {
+  if ((c >= 32) && (c <= 254)) {
     cc->putchar(c);
   }
   console_printf(cc, "\n");

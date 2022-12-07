@@ -131,7 +131,7 @@ uint32_t uart_console_poll(struct ConsoleConfig* cc, const char* prompt) {
   uint32_t num_processed = 0;
   while (1) {
     const int cint = getchar_timeout_us(0);
-    if ((cint < 0) || (cint > 127)) {
+    if ((cint < 0) || (cint > 254)) {
       // didn't get anything
       break;
     }

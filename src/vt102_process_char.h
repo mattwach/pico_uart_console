@@ -49,7 +49,7 @@ char vt102_process_char(struct ConsoleConfig* cc, char c);
 // This a useful mode when adding support for new features or
 // investigating unexpected interactions between the host machine
 // and pico (which are expected to both follow the same escape control
-// protol but that doesn't always work and is affected by thing like
+// protcol but that doesn't always work and is affected by thing like
 // the TERM environment variable on the host side).
 void vt102_dump_internal_state(struct ConsoleConfig* cc);
 #endif
