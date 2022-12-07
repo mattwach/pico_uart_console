@@ -19,7 +19,7 @@
 // and the use enters "he" and presses tab, the system will cycle
 // through "hello" and "help".  If the user just typed "h", then
 // the system will cycle through "hello", "help" , and "host".
-// cc->tab_length hold the relevant legth (2 in the first example,
+// cc->tab_length hold the relevant length (2 in the first example,
 // 1 in the second) that implements this behavior.
 void vt102_tab_pressed(struct ConsoleConfig* cc);
 

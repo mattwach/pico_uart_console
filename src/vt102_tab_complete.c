@@ -3,7 +3,8 @@
 #include <inttypes.h>
 // Functions that handle tab completion
 
-static uint8_t vt102_try_tab_complete(struct ConsoleConfig* cc, uint8_t callback_idx) {
+static uint8_t vt102_try_tab_complete(
+    struct ConsoleConfig* cc, uint8_t callback_idx) {
   // synthetically adding "help" at the end of the command list
   const char* command = callback_idx >= cc->callback_count ?
     "help" : cc->callbacks[callback_idx].command; 
@@ -26,7 +27,8 @@ static uint8_t vt102_try_tab_complete(struct ConsoleConfig* cc, uint8_t callback
 // Called when the user presses the tab key
 void vt102_tab_pressed(struct ConsoleConfig* cc) {
   for (uint8_t i=0; i < (cc->callback_count + 1); ++i) {
-    const uint8_t callback_idx = (cc->tab_callback_index + i + 1) % (cc->callback_count + 1);
+    const uint8_t callback_idx =
+        (cc->tab_callback_index + i + 1) % (cc->callback_count + 1);
     if (vt102_try_tab_complete(cc, callback_idx)) {
       return;
     }

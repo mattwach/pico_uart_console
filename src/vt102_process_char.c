@@ -10,7 +10,7 @@ static void vt102_backspace(struct ConsoleConfig* cc) {
   }
 
   if (cc->cursor_index < cc->line_length) {
-    // need to deleete a character in the middle of the buffer
+    // need to delete a character in the middle of the buffer
     memmove(
       cc->line + cc->cursor_index - 1,
       cc->line + cc->cursor_index,

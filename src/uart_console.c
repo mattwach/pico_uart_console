@@ -102,7 +102,8 @@ void uart_console_putchar(struct ConsoleConfig* cc, char c) {
   } else if (c < 32) {
     // ignore this code
   } else if (cc->line_length >= CONSOLE_MAX_LINE_CHARS) {
-    console_printf(cc, "\nLine too long (>%d characters)\n", CONSOLE_MAX_LINE_CHARS);
+    console_printf(
+        cc, "\nLine too long (>%d characters)\n", CONSOLE_MAX_LINE_CHARS);
     reset_line(cc);
   } else {
     insert_character(cc, c);
