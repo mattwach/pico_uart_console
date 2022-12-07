@@ -40,6 +40,7 @@ static void get_terminal(uint8_t argc, char* argv[]) {
   for (uint8_t i=0; i < NUM_TERMINAL_PAIRS; ++i) {
     if (terminal_pairs[i].code == cc.terminal) {
       printf("%s\n", terminal_pairs[i].name);
+      return;
     }
   }
   printf("unknown\n");
