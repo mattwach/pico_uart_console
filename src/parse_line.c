@@ -122,7 +122,7 @@ static int split_args(struct ConsoleConfig* cc) {
   }
   cc->line_length = remove_backslashes(cc->line, cc->line_length);
   if (cc->line_length == 0) {
-    return 1;  // nothing to do
+    return 0;  // nothing to do
   }
 
   if (cc->line[0] != 0) {

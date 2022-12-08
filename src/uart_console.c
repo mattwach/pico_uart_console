@@ -97,7 +97,7 @@ void uart_console_putchar(struct ConsoleConfig* cc, char c) {
     reset_line(cc);
   } else if (c == 0x03) {
     // ctrl-c
-    console_puts(cc, "\nCancelled\n");
+    console_puts(cc, "\rCancelled\r");
     reset_line(cc);  
   } else if (c < 32) {
     // ignore this code
