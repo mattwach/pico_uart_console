@@ -26,7 +26,7 @@ void console_debug_putchar(const struct ConsoleConfig* cc, char c) {
   console_printf(cc, "\n");
 }
 
-#define MAX_PRINTF_LENGTH 80
+#define MAX_PRINTF_LENGTH 255
 void console_printf(const struct ConsoleConfig* cc, const char* fmt, ...) {
   static char printf_buffer[MAX_PRINTF_LENGTH + 1];
   va_list args;
