@@ -27,7 +27,7 @@ static uint8_t check_arg_count(
     } else if (cb->num_args == 1) {
       console_printf(cc, "%s: Expected 1 argument\n", cb->command);
     } else {
-      console_printf(cc, "%s: Expected %d arguments\n", cb->command, argc);
+      console_printf(cc, "%s: Expected %d arguments\n", cb->command, cb->num_args);
     }
     return 0;
   }
